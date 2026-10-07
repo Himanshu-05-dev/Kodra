@@ -1,0 +1,34 @@
+{
+  "name": "kodra-platform",
+  "version": "1.0.0",
+  "description": "Kodra - AI-Powered Cloud IDE Platform",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "server",
+    "client",
+    "agent",
+    "sandbox"
+  ],
+  "scripts": {
+    "dev:server": "npm run --workspace=server dev",
+    "start:server": "npm run --workspace=server start",
+    "dev:client": "npm run --workspace=client dev",
+    "build:client": "npm run --workspace=client build",
+    "test:server": "npm run --workspace=server test",
+    "lint": "echo \"Linting all workspaces...\""
+  },
+  "keywords": [
+    "cloud-ide",
+    "ai-coding-agent",
+    "docker-sandbox",
+    "monaco-editor",
+    "web-terminal"
+  ],
+  "author": "Kodra Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

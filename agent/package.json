@@ -1,0 +1,13 @@
+{
+  "name": "@kodra/agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Agent tests placeholder\""
+  },
+  "dependencies": {
+    "@google/genai": "^2.27.0",
+    "@kodra/shared": "*"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@kodra/shared",
+  "version": "1.0.0",
+  "description": "Shared constants, enums, and schemas for Kodra platform",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"No shared tests yet\""
+  },
+  "keywords": [
+    "kodra",
+    "shared"
+  ],
+  "author": "Kodra Team",
+  "license": "MIT"
+}

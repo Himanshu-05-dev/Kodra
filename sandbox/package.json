@@ -1,0 +1,12 @@
+{
+  "name": "@kodra/sandbox",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Sandbox tests placeholder\""
+  },
+  "dependencies": {
+    "@kodra/shared": "*"
+  }
+}
