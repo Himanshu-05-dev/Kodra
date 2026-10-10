@@ -10,7 +10,9 @@
     "test": "node --test"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1149.0",
     "@kodra/shared": "*",
+    "adm-zip": "^0.6.1",
     "archiver": "^8.0.0",
     "cors": "^2.8.5",
     "dockerode": "^5.0.1",

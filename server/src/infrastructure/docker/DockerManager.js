@@ -8,6 +8,7 @@ import Docker from 'dockerode';
 import path from 'node:path';
 import { config } from '../../config/index.js';
 import { logger } from '../logger/logger.js';
+import { SecurityProfile } from './SecurityProfile.js';
 
 export class DockerManager {
   constructor() {
@@ -123,15 +124,11 @@ export class DockerManager {
         'kodra.managed': 'true'
       },
       ExposedPorts: exposedPorts,
-      HostConfig: {
+      HostConfig: SecurityProfile.getHardenedHostConfig({
         Binds: [`${formattedBind}:${config.docker.workdir}:rw`],
-        Memory: config.docker.memoryLimitBytes,
-        NanoCpus: Math.floor(config.docker.cpuLimit * 1e9),
-        PidsLimit: config.docker.pidsLimit,
         PortBindings: portBindings,
-        AutoRemove: true,
-        NetworkMode: 'bridge'
-      }
+        AutoRemove: true
+      })
     });
 
     await container.start();

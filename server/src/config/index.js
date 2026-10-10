@@ -170,5 +170,21 @@ export const config = deepFreeze({
         maxProjects: getNumber('ENTERPRISE_TIER_MAX_PROJECTS', 200)
       }
     }
+  },
+
+  backup: {
+    s3Bucket: getOptional('S3_BACKUP_BUCKET', 'kodra-workspaces-backup'),
+    s3Region: getOptional('S3_BACKUP_REGION', 'us-east-1'),
+    s3Endpoint: getOptional('S3_BACKUP_ENDPOINT', ''),
+    s3AccessKeyId: getOptional('AWS_ACCESS_KEY_ID', ''),
+    s3SecretAccessKey: getOptional('AWS_SECRET_ACCESS_KEY', ''),
+    s3ForcePathStyle: getBoolean('S3_FORCE_PATH_STYLE', false)
+  },
+
+  productionSecurity: {
+    enforceSecurityProfiles: getBoolean('ENFORCE_DOCKER_SECURITY_PROFILES', false),
+    dropCapabilities: getBoolean('DOCKER_DROP_ALL_CAPABILITIES', true),
+    noNewPrivileges: getBoolean('DOCKER_NO_NEW_PRIVILEGES', true),
+    pidsLimit: getNumber('DOCKER_PRODUCTION_PIDS_LIMIT', 100, 10, 500)
   }
 });

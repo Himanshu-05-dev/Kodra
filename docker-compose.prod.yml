@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # 1. Production Reverse Proxy & SSL Gateway
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: kodra-gateway-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/production.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_challenge:/var/www/certbot:ro
+    depends_on:
+      - backend
+      - client
+    networks:
+      - kodra-public-net
+      - kodra-internal-net
+
+  # 2. Production Backend API & WebSocket Engine
+  backend:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: kodra-backend-prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      - NODE_ENV=production
+      - DOCKER_SOCKET_PATH=/var/run/docker.sock
+    volumes:
+      - workspaces_data:/app/server/workspaces
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - kodra-internal-net
+      - kodra-sandbox-net
+
+  # 3. Production Frontend SPA
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.kodra.dev/api/v1
+        VITE_WS_BASE_URL: wss://api.kodra.dev
+        VITE_PREVIEW_DOMAIN: preview.kodra.dev
+    container_name: kodra-client-prod
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    networks:
+      - kodra-internal-net
+
+volumes:
+  workspaces_data:
+    driver: local
+  certbot_certs:
+  certbot_challenge:
+
+networks:
+  kodra-public-net:
+    driver: bridge
+  kodra-internal-net:
+    driver: bridge
+  kodra-sandbox-net:
+    name: kodra-sandboxes-prod
+    driver: bridge

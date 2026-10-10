@@ -28,7 +28,7 @@ export class PreviewProxyGateway {
    */
   extractProjectId(req) {
     // 1. Custom Header
-    const customHeader = req.headers?.['x-kodra-project-id'];
+    const customHeader = req.headers?.['x-kodra-project-id'] || req.headers?.['x-kodra-wildcard-subdomain'];
     if (customHeader) {
       return customHeader.toString().trim();
     }

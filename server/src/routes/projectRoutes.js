@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { ProjectController } from '../controllers/ProjectController.js';
 import { PreviewController } from '../controllers/PreviewController.js';
 import { GitController } from '../controllers/GitController.js';
+import { BackupController } from '../controllers/BackupController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 import { enforceProjectCreationQuota } from '../middleware/quotaMiddleware.js';
 
@@ -47,4 +48,11 @@ router.post('/:id/git/branches', GitController.checkoutBranch);
 router.get('/:id/git/history', GitController.getHistory);
 router.post('/:id/git/ai-commit-message', GitController.generateCommitMessage);
 
+// S3 Persistent Storage & Cloud Snapshots
+router.post('/:id/backup', BackupController.createBackup);
+router.get('/:id/backups', BackupController.listBackups);
+router.post('/:id/restore', BackupController.restoreBackup);
+router.delete('/:id/backups', BackupController.deleteBackup);
+
 export default router;
+

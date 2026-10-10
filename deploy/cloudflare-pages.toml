@@ -1,0 +1,26 @@
+# ==============================================================================
+# CLOUDFLARE PAGES CONFIGURATION FOR KODRA FRONTEND
+# ==============================================================================
+
+[build]
+command = "npm run build --workspace=client"
+destination = "client/dist"
+root_directory = "/"
+
+[build.environment]
+NODE_VERSION = "20"
+VITE_API_BASE_URL = "https://api.kodra.dev/api/v1"
+VITE_WS_BASE_URL = "wss://api.kodra.dev"
+VITE_PREVIEW_DOMAIN = "preview.kodra.dev"
+
+[[headers]]
+for = "/assets/*"
+[headers.values]
+"Cache-Control" = "public, max-age=31536000, immutable"
+"X-Content-Type-Options" = "nosniff"
+
+[[headers]]
+for = "/*"
+[headers.values]
+"X-Frame-Options" = "SAMEORIGIN"
+"Referrer-Policy" = "strict-origin-when-cross-origin"

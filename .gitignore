@@ -14,6 +14,8 @@ pnpm-debug.log*
 # Managed Project Workspaces (Runtime user data)
 server/workspaces/*
 !server/workspaces/.gitkeep
+server/backups/*
+!server/backups/.gitkeep
 
 # Production builds
 dist/

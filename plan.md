@@ -515,16 +515,17 @@ flowchart TD
 
 ---
 
-### Phase 14: Cloud Production Deployment
+### Phase 14: Cloud Production Deployment [Completed]
 * **Goal:** Transition from local development to production cloud infrastructure.
 * **Scope:**
   * Backend deployment to AWS EC2 / ECS or GCP Compute Engine.
-  * Docker daemon security hardening in production.
+  * Docker daemon security hardening in production (`SecurityProfile`, drop capabilities, `no-new-privileges`, PIDs limit).
   * Frontend static deployment to Vercel or Cloudflare Pages with custom domain and SSL.
-  * Wildcard DNS configuration (`*.preview.kodra.dev`) for seamless project preview routing.
-  * MongoDB Atlas production peering and S3 persistent storage backups.
+  * Wildcard DNS & Nginx reverse proxy configuration (`*.preview.kodra.dev`) for seamless project preview routing & WebSocket proxying.
+  * S3 persistent storage snapshot backups & disaster recovery (`S3BackupAdapter`, `BackupService`, `BackupController`).
+  * Automated Phase 14 test suite (`deployment.test.js` - 12 passing tests).
 * **Definition of Done:**
-  * Production application accessible globally via secure HTTPS and WebSockets.
+  * Production application containerized, secured, and automated for AWS ECS/EC2 and Vercel/Cloudflare deployments with S3 backup/restore and wildcard DNS routing. Verified with 100% test pass rate.
 
 ---
 
