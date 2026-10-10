@@ -4,6 +4,7 @@
  */
 
 import path from 'node:path';
+import { ZipArchive } from 'archiver';
 import { config } from '../config/index.js';
 import { StorageLimitError, ValidationError } from '../utils/AppError.js';
 import { ProjectTemplates } from '@kodra/shared';
@@ -267,5 +268,32 @@ app.listen(PORT, '0.0.0.0', () => {
     await this.fs.writeFile(path.join(workspacePath, 'index.html'), indexHtml);
     await this.fs.writeFile(path.join(workspacePath, 'style.css'), styleCss);
     await this.fs.writeFile(path.join(workspacePath, 'app.js'), appJs);
+  }
+
+  /**
+   * Clone a workspace directory to another destination path
+   */
+  async cloneWorkspace(sourcePath, destPath) {
+    return await this.fs.copyDirectory(sourcePath, destPath);
+  }
+
+  /**
+   * Create a streaming ZIP archive of the workspace directory
+   * @param {string} workspacePath
+   * @returns {import('archiver').ZipArchive}
+   */
+  exportZipStream(workspacePath) {
+    const archive = new ZipArchive({
+      zlib: { level: 9 }
+    });
+
+    archive.glob('**/*', {
+      cwd: workspacePath,
+      dot: true,
+      ignore: ['node_modules/**', '.git/**', 'dist/**', '.DS_Store']
+    });
+
+    archive.finalize();
+    return archive;
   }
 }

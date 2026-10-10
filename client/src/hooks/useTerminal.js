@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { WebSocketEvents } from '@kodra/shared';
+import { getApiAuthToken } from '../services/api.js';
 
 const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:5000';
 
@@ -48,7 +49,9 @@ export function useTerminal(projectId) {
     setStatus('connecting');
     setErrorMessage(null);
 
-    const wsUrl = `${WS_BASE_URL}/ws/terminal?projectId=${encodeURIComponent(projectId)}`;
+    const token = getApiAuthToken();
+    const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : '';
+    const wsUrl = `${WS_BASE_URL}/ws/terminal?projectId=${encodeURIComponent(projectId)}${tokenQuery}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

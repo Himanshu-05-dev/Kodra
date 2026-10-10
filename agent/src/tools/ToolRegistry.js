@@ -11,6 +11,9 @@ import { editFileHandler } from './handlers/editFileHandler.js';
 import { deleteFileHandler } from './handlers/deleteFileHandler.js';
 import { searchFilesHandler } from './handlers/searchFilesHandler.js';
 import { runCommandHandler } from './handlers/runCommandHandler.js';
+import { gitStatusHandler } from './handlers/gitStatusHandler.js';
+import { gitDiffHandler } from './handlers/gitDiffHandler.js';
+import { gitCommitHandler } from './handlers/gitCommitHandler.js';
 
 export class ToolRegistry {
   constructor() {
@@ -22,10 +25,13 @@ export class ToolRegistry {
       ['edit_file', editFileHandler],
       ['delete_file', deleteFileHandler],
       ['search_files', searchFilesHandler],
-      ['run_command', runCommandHandler]
+      ['run_command', runCommandHandler],
+      ['git_status', gitStatusHandler],
+      ['git_diff', gitDiffHandler],
+      ['git_commit', gitCommitHandler]
     ]);
 
-    this.mutationTools = new Set(['write_file', 'edit_file', 'delete_file']);
+    this.mutationTools = new Set(['write_file', 'edit_file', 'delete_file', 'git_commit']);
   }
 
   /**

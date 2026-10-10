@@ -66,6 +66,19 @@ export class StorageLimitError extends AppError {
   }
 }
 
+export class QuotaExceededError extends AppError {
+  constructor(message = 'Usage quota limit exceeded for your current billing plan', details = []) {
+    super(message, 402, ErrorCodes.QUOTA_EXCEEDED, details);
+  }
+}
+
+export class PaymentRequiredError extends AppError {
+  constructor(message = 'Payment is required to perform this action', details = []) {
+    super(message, 402, ErrorCodes.PAYMENT_REQUIRED, details);
+  }
+}
+
+
 export class DatabaseError extends AppError {
   constructor(message = 'Database operation failed', details = []) {
     super(message, 500, ErrorCodes.DATABASE_ERROR, details);
@@ -81,6 +94,18 @@ export class DockerError extends AppError {
 export class AIProviderError extends AppError {
   constructor(message = 'AI provider request failed', details = []) {
     super(message, 502, ErrorCodes.AI_PROVIDER_ERROR, details);
+  }
+}
+
+export class InfrastructureError extends AppError {
+  constructor(message = 'Infrastructure operation failed', details = []) {
+    super(message, 502, ErrorCodes.INTERNAL_ERROR, details);
+  }
+}
+
+export class BillingError extends AppError {
+  constructor(message = 'Billing service error', details = []) {
+    super(message, 400, ErrorCodes.PAYMENT_REQUIRED, details);
   }
 }
 

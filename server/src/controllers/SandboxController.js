@@ -13,7 +13,8 @@ export class SandboxController {
   static async startSandbox(req, res, next) {
     try {
       const { projectId } = req.params;
-      const result = await sandboxService.startSandbox(projectId);
+      const ownerId = req.user?.uid || req.headers['x-user-id'] || 'anonymous';
+      const result = await sandboxService.startSandbox(projectId, ownerId);
       return ApiResponse.success(res, result);
     } catch (err) {
       next(err);
@@ -26,7 +27,8 @@ export class SandboxController {
   static async stopSandbox(req, res, next) {
     try {
       const { projectId } = req.params;
-      const result = await sandboxService.stopSandbox(projectId);
+      const ownerId = req.user?.uid || req.headers['x-user-id'] || 'anonymous';
+      const result = await sandboxService.stopSandbox(projectId, ownerId);
       return ApiResponse.success(res, result);
     } catch (err) {
       next(err);
@@ -39,7 +41,8 @@ export class SandboxController {
   static async getStatus(req, res, next) {
     try {
       const { projectId } = req.params;
-      const status = await sandboxService.getSandboxStatus(projectId);
+      const ownerId = req.user?.uid || req.headers['x-user-id'] || 'anonymous';
+      const status = await sandboxService.getSandboxStatus(projectId, ownerId);
       return ApiResponse.success(res, status);
     } catch (err) {
       next(err);

@@ -3,7 +3,7 @@
  * Automated validation suite for Phase 3: Terminal & xterm.js PTY Engine.
  */
 
-import { describe, it } from 'node:test';
+import { describe, it, after } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -107,5 +107,12 @@ describe('Phase 3: Terminal & PTY Engine Test Suite', () => {
       service.handleResize('sess-valid-1', 100, 30);
       service.closeSession('sess-valid-1');
     });
+  });
+
+  after(() => {
+    // Clean up any remaining pty processes
+    for (const [id] of ptyManager.sessions) {
+      ptyManager.destroySession(id);
+    }
   });
 });

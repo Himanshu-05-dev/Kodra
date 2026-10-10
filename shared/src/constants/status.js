@@ -34,3 +34,18 @@ export const ProjectTemplates = Object.freeze({
   VITE_REACT: 'vite-react',
   NODE_EXPRESS: 'node-express'
 });
+
+export const SubscriptionPlan = Object.freeze({
+  FREE: 'free',
+  PRO: 'pro',
+  ENTERPRISE: 'enterprise'
+});
+
+export const SubscriptionStatus = Object.freeze({
+  ACTIVE: 'active',
+  TRIALING: 'trialing',
+  CANCELED: 'canceled',
+  PAST_DUE: 'past_due',
+  INCOMPLETE: 'incomplete'
+});
+

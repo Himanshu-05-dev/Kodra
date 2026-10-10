@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, FileCode2, Terminal, Plus, Sparkles, Headphones, X } from 'lucide-react';
+import { Search, FileCode2, Terminal, Plus, Sparkles, Headphones, Globe, X, GitBranch } from 'lucide-react';
 
 export function CommandPalette({
   isOpen,
@@ -9,7 +9,10 @@ export function CommandPalette({
   onCreateFile,
   onCreateProject,
   onToggleVibeMode,
-  onToggleTerminal
+  onToggleTerminal,
+  onTogglePreview,
+  onOpenGit,
+  onImportGit
 }) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -31,6 +34,24 @@ export function CommandPalette({
   const allFiles = extractFiles(files);
 
   const commands = [
+    {
+      id: 'preview',
+      title: 'Open Live Application Preview',
+      icon: <Globe size={14} className="text-emerald-400" />,
+      action: () => { if (onTogglePreview) onTogglePreview(); onClose(); }
+    },
+    {
+      id: 'git',
+      title: 'Git: Open Source Control Panel',
+      icon: <GitBranch size={14} className="text-purple-400" />,
+      action: () => { if (onOpenGit) onOpenGit(); onClose(); }
+    },
+    {
+      id: 'import-git',
+      title: 'Git: Import Remote Repository...',
+      icon: <GitBranch size={14} className="text-cyan-400" />,
+      action: () => { if (onImportGit) onImportGit(); onClose(); }
+    },
     {
       id: 'vibe',
       title: 'Toggle Vibe Coding Atmosphere (Lo-Fi)',

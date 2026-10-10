@@ -10,21 +10,30 @@ import {
   Headphones,
   CheckCircle2,
   Command,
-  Radio
+  Radio,
+  LayoutGrid,
+  GitBranch
 } from 'lucide-react';
+
+import { UserMenu } from '../Auth/UserMenu.jsx';
 
 export function Navbar({
   currentProject,
   projects = [],
   onSelectProject,
   onCreateProjectClick,
+  onImportGitClick,
   onSaveFile,
   isDirty,
   isSaving,
   activeFilePath,
   isVibeModeActive,
   onToggleVibeMode,
-  onOpenCommandPalette
+  onOpenCommandPalette,
+  onOpenAuthModal,
+  onOpenDashboard,
+  onOpenBillingModal,
+  onOpenUpgradeModal
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -33,7 +42,11 @@ export function Navbar({
       {/* Left: Brand & Project Selector */}
       <div className="flex items-center gap-3">
         {/* Brand */}
-        <div className="flex items-center gap-2 font-bold text-sm tracking-tight pr-3 border-r border-ide-border/60">
+        <button
+          onClick={onOpenDashboard}
+          className="flex items-center gap-2 font-bold text-sm tracking-tight pr-3 border-r border-ide-border/60 hover:opacity-80 transition-opacity"
+          title="Back to Dashboard"
+        >
           <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-purple-500 via-indigo-500 to-cyan-400 p-[1px] shadow-glow-sm">
             <div className="w-full h-full bg-[#0d0f17] rounded-[5px] flex items-center justify-center">
               <Code2 size={14} className="text-purple-300" />
@@ -45,7 +58,7 @@ export function Navbar({
           <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 font-mono">
             vibe
           </span>
-        </div>
+        </button>
 
         {/* Project Selector Glass Pill */}
         <div className="relative">
@@ -90,7 +103,17 @@ export function Navbar({
                 ))}
               </div>
 
-              <div className="border-t border-white/5 p-1">
+              <div className="border-t border-white/5 p-1 space-y-0.5">
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    onOpenDashboard();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-white/5 text-slate-300 hover:text-white rounded flex items-center gap-2 font-medium transition-colors"
+                >
+                  <LayoutGrid size={13} className="text-purple-400" />
+                  All Workspaces (Dashboard)
+                </button>
                 <button
                   onClick={() => {
                     setDropdownOpen(false);
@@ -101,6 +124,18 @@ export function Navbar({
                   <Plus size={13} />
                   Create New Project
                 </button>
+                {onImportGitClick && (
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      onImportGitClick();
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 hover:bg-cyan-500/15 text-cyan-400 hover:text-cyan-300 rounded flex items-center gap-2 font-medium transition-colors"
+                  >
+                    <GitBranch size={13} />
+                    Import from Git...
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -160,6 +195,15 @@ export function Navbar({
           <Save size={13} />
           <span>{isSaving ? 'Saving...' : 'Save'}</span>
         </button>
+
+        {/* User Account / Tenant Menu */}
+        <div className="pl-2 border-l border-white/10 ml-1">
+          <UserMenu
+            onOpenAuthModal={onOpenAuthModal}
+            onOpenBillingModal={onOpenBillingModal}
+            onOpenUpgradeModal={onOpenUpgradeModal}
+          />
+        </div>
       </div>
     </header>
   );

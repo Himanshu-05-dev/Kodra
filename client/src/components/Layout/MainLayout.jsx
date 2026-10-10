@@ -8,10 +8,15 @@ export function MainLayout({
   editor,
   terminal,
   chatPanel,
+  rightPanel,
   isSidebarOpen = true,
   isTerminalOpen = true,
-  isChatOpen = true
+  isChatOpen = true,
+  isRightPanelOpen
 }) {
+  const showRightPanel = isRightPanelOpen !== undefined ? isRightPanelOpen : isChatOpen;
+  const rightContent = rightPanel || chatPanel;
+
   return (
     <div className="flex-1 w-full h-[calc(100vh-68px)] overflow-hidden bg-[#08090d] flex">
       {/* Activity Bar Dock */}
@@ -31,7 +36,7 @@ export function MainLayout({
           )}
 
           {/* Center Workspace: Editor & Terminal */}
-          <Panel defaultSize={isChatOpen ? 56 : 82} minSize={30} id="center-panel">
+          <Panel defaultSize={showRightPanel ? 50 : 82} minSize={25} id="center-panel">
             <PanelGroup direction="vertical">
               {/* Top: Tabs & Monaco Editor */}
               <Panel defaultSize={isTerminalOpen ? 70 : 100} minSize={30} id="editor-panel">
@@ -54,11 +59,11 @@ export function MainLayout({
           </Panel>
 
           {/* Right Panel: AI Copilot / Live Preview */}
-          {isChatOpen && (
+          {showRightPanel && (
             <>
               <PanelResizeHandle className="w-1 bg-white/[0.04] hover:bg-purple-500 transition-colors" />
-              <Panel defaultSize={26} minSize={18} maxSize={40} id="chat-panel">
-                {chatPanel}
+              <Panel defaultSize={32} minSize={18} maxSize={60} id="right-panel">
+                {rightContent}
               </Panel>
             </>
           )}

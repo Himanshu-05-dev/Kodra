@@ -5,7 +5,7 @@
 
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { ProjectService } from '../services/ProjectService.js';
-import { WorkspaceService } from '../services/WorkspaceService.js';
+import { SandboxService } from '../services/SandboxService.js';
 import { ProjectRepository } from '../repositories/ProjectRepository.js';
 import { FileSystemRepository } from '../repositories/FileSystemRepository.js';
 
@@ -13,7 +13,12 @@ import { FileSystemRepository } from '../repositories/FileSystemRepository.js';
 const fileSystemRepo = new FileSystemRepository();
 const projectRepo = new ProjectRepository();
 const workspaceService = new WorkspaceService(fileSystemRepo);
-const projectService = new ProjectService(projectRepo, workspaceService, fileSystemRepo);
+const sandboxService = new SandboxService(projectRepo);
+const projectService = new ProjectService(projectRepo, workspaceService, fileSystemRepo, sandboxService);
+
+function getRequestUserId(req) {
+  return req.user?.uid || req.headers['x-user-id'] || 'anonymous';
+}
 
 export class ProjectController {
   /**
@@ -22,7 +27,7 @@ export class ProjectController {
   static async createProject(req, res, next) {
     try {
       const { name, description, template } = req.body;
-      const ownerId = req.headers['x-user-id'] || 'anonymous';
+      const ownerId = getRequestUserId(req);
 
       const project = await projectService.createProject({
         name,
@@ -42,7 +47,7 @@ export class ProjectController {
    */
   static async listProjects(req, res, next) {
     try {
-      const ownerId = req.headers['x-user-id'] || 'anonymous';
+      const ownerId = getRequestUserId(req);
       const limit = parseInt(req.query.limit, 10) || 50;
       const skip = parseInt(req.query.skip, 10) || 0;
 
@@ -59,10 +64,65 @@ export class ProjectController {
   static async getProject(req, res, next) {
     try {
       const { id } = req.params;
-      const ownerId = req.headers['x-user-id'] || 'anonymous';
+      const ownerId = getRequestUserId(req);
 
       const project = await projectService.getProjectById(id, ownerId);
       return ApiResponse.success(res, project);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * PATCH /api/v1/projects/:id
+   * Rename or update description
+   */
+  static async updateProject(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { name, description } = req.body;
+      const ownerId = getRequestUserId(req);
+
+      const updated = await projectService.updateProject(id, { name, description }, ownerId);
+      return ApiResponse.success(res, updated);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * POST /api/v1/projects/:id/clone
+   * Clone/Fork project workspace & record
+   */
+  static async cloneProject(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { name } = req.body;
+      const ownerId = getRequestUserId(req);
+
+      const cloned = await projectService.cloneProject(id, { name }, ownerId);
+      return ApiResponse.success(res, cloned, 201);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * GET /api/v1/projects/:id/export
+   * Stream project directory as a ZIP archive
+   */
+  static async exportProject(req, res, next) {
+    try {
+      const { id } = req.params;
+      const ownerId = getRequestUserId(req);
+
+      const { project, stream } = await projectService.getProjectExport(id, ownerId);
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${project.name}.zip"`);
+
+      stream.on('error', (err) => next(err));
+      stream.pipe(res);
     } catch (err) {
       next(err);
     }
@@ -74,7 +134,7 @@ export class ProjectController {
   static async deleteProject(req, res, next) {
     try {
       const { id } = req.params;
-      const ownerId = req.headers['x-user-id'] || 'anonymous';
+      const ownerId = getRequestUserId(req);
 
       const result = await projectService.deleteProject(id, ownerId);
       return ApiResponse.success(res, result);
@@ -89,7 +149,7 @@ export class ProjectController {
   static async getProjectFiles(req, res, next) {
     try {
       const { id } = req.params;
-      const ownerId = req.headers['x-user-id'] || 'anonymous';
+      const ownerId = getRequestUserId(req);
 
       const fileTree = await projectService.getProjectFileTree(id, ownerId);
       return ApiResponse.success(res, fileTree);
@@ -105,7 +165,7 @@ export class ProjectController {
     try {
       const { id } = req.params;
       const relativePath = req.query.path;
-      const ownerId = req.headers['x-user-id'] || 'anonymous';
+      const ownerId = getRequestUserId(req);
 
       const fileData = await projectService.getFileContent(id, relativePath, ownerId);
       return ApiResponse.success(res, fileData);
@@ -122,7 +182,7 @@ export class ProjectController {
     try {
       const { id } = req.params;
       const { path: relativePath, content } = req.body;
-      const ownerId = req.headers['x-user-id'] || 'anonymous';
+      const ownerId = getRequestUserId(req);
 
       const result = await projectService.saveFileContent(id, relativePath, content, ownerId);
       return ApiResponse.success(res, result);
@@ -138,7 +198,7 @@ export class ProjectController {
     try {
       const { id } = req.params;
       const relativePath = req.query.path;
-      const ownerId = req.headers['x-user-id'] || 'anonymous';
+      const ownerId = getRequestUserId(req);
 
       const result = await projectService.deleteFile(id, relativePath, ownerId);
       return ApiResponse.success(res, result);

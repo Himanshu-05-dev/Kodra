@@ -146,5 +146,29 @@ export const config = deepFreeze({
     baseDomain: getOptional('PREVIEW_BASE_DOMAIN', 'preview.localhost'),
     portRangeStart: getNumber('PREVIEW_PORT_RANGE_START', 30000),
     portRangeEnd: getNumber('PREVIEW_PORT_RANGE_END', 35000)
+  },
+
+  billing: {
+    enabled: getBoolean('BILLING_ENABLED', false),
+    stripeSecretKey: getOptional('STRIPE_SECRET_KEY', ''),
+    stripeWebhookSecret: getOptional('STRIPE_WEBHOOK_SECRET', ''),
+    stripePriceIdProMonthly: getOptional('STRIPE_PRICE_ID_PRO_MONTHLY', 'price_pro_monthly'),
+    tiers: {
+      free: {
+        maxTokensMonthly: getNumber('FREE_TIER_MAX_TOKENS_MONTHLY', 50000),
+        maxSandboxHoursMonthly: getNumber('FREE_TIER_MAX_SANDBOX_HOURS_MONTHLY', 10),
+        maxProjects: getNumber('FREE_TIER_MAX_PROJECTS', 3)
+      },
+      pro: {
+        maxTokensMonthly: getNumber('PRO_TIER_MAX_TOKENS_MONTHLY', 2000000),
+        maxSandboxHoursMonthly: getNumber('PRO_TIER_MAX_SANDBOX_HOURS_MONTHLY', 200),
+        maxProjects: getNumber('PRO_TIER_MAX_PROJECTS', 50)
+      },
+      enterprise: {
+        maxTokensMonthly: getNumber('ENTERPRISE_TIER_MAX_TOKENS_MONTHLY', 10000000),
+        maxSandboxHoursMonthly: getNumber('ENTERPRISE_TIER_MAX_SANDBOX_HOURS_MONTHLY', 1000),
+        maxProjects: getNumber('ENTERPRISE_TIER_MAX_PROJECTS', 200)
+      }
+    }
   }
 });

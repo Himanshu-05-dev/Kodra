@@ -17,13 +17,19 @@ import apiRouter from './routes/index.js';
 import { NotFoundError } from './utils/AppError.js';
 import { TerminalGateway } from './gateways/TerminalGateway.js';
 import { AgentGateway } from './gateways/AgentGateway.js';
+import { PreviewProxyGateway } from './gateways/PreviewProxyGateway.js';
 import { ptyManager } from './infrastructure/terminal/PtyManager.js';
 
 const app = express();
 
-// 1. Security & Core Middleware
+// 1. Live Preview Reverse Proxy Gateway Instance
+const previewProxyGateway = new PreviewProxyGateway();
+
+// 2. Security & Core Middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  frameguard: false, // Allow IDE iframe embedding
+  contentSecurityPolicy: false // Allow preview apps to load assets freely
 }));
 
 app.use(cors({
@@ -33,24 +39,33 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-User-Id']
 }));
 
-app.use(express.json({ limit: '10mb' }));
+// 3. Dynamic Live Preview Reverse Proxy (Precedes body parsers to avoid stream consumption)
+app.use(previewProxyGateway.middleware);
+
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 2. Request Correlation & Logging
+
+// 4. Request Correlation & Logging
 app.use(requestLogger);
 
-// 3. API Versioned Routes
+// 5. API Versioned Routes
 app.use(config.server.apiPrefix, apiRouter);
 
-// 4. Catch Unmapped Routes (404)
+// 6. Catch Unmapped Routes (404)
 app.use((req, res, next) => {
   next(new NotFoundError(`Endpoint ${req.method} ${req.originalUrl} does not exist.`));
 });
 
-// 5. Centralized Error Handling Middleware
+// 7. Centralized Error Handling Middleware
 app.use(errorHandler);
 
-// 6. Server Lifecycle & Boot
+// 8. Server Lifecycle & Boot
 let serverInstance = null;
 let terminalGatewayInstance = null;
 let agentGatewayInstance = null;
@@ -68,12 +83,15 @@ async function bootstrap() {
     const httpServer = http.createServer(app);
     terminalGatewayInstance = new TerminalGateway(httpServer);
     agentGatewayInstance = new AgentGateway(httpServer);
+    previewProxyGateway.setupUpgradeHandler(httpServer);
 
     serverInstance = httpServer.listen(config.server.port, config.server.host, () => {
       logger.info(`Server successfully listening on http://${config.server.host}:${config.server.port}`);
       logger.info(`API Base URL: http://${config.server.host}:${config.server.port}${config.server.apiPrefix}`);
       logger.info(`Terminal WS URL: ws://${config.server.host}:${config.server.port}/ws/terminal`);
       logger.info(`Agent WS URL: ws://${config.server.host}:${config.server.port}/ws/agent`);
+      logger.info(`Preview Base Domain: ${config.preview.baseDomain}`);
+      logger.info(`Preview Gateway URL: http://<projectId>.${config.preview.baseDomain}:${config.server.port}`);
       logger.info(`Workspace Storage Base: ${config.storage.basePath}`);
     });
   } catch (err) {

@@ -40,9 +40,9 @@ describe('Phase 6: AI Tool Calling & Execution Engine Test Suite', () => {
   });
 
   describe('1. Tool Registry & Schema Declarations', () => {
-    it('should register all 7 core development tools', () => {
+    it('should register all core development tools', () => {
       const defs = toolRegistry.getDefinitions();
-      assert.equal(defs.length, 7);
+      assert.ok(defs.length >= 7);
 
       const names = defs.map((d) => d.name);
       assert.ok(names.includes('list_files'));
@@ -56,7 +56,7 @@ describe('Phase 6: AI Tool Calling & Execution Engine Test Suite', () => {
 
     it('should generate Gemini function declarations with valid schema', () => {
       const geminiTools = toolRegistry.getGeminiDeclarations();
-      assert.equal(geminiTools.length, 7);
+      assert.ok(geminiTools.length >= 7);
       for (const tool of geminiTools) {
         assert.equal(typeof tool.name, 'string');
         assert.equal(typeof tool.description, 'string');

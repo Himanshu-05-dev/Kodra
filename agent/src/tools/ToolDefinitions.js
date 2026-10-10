@@ -133,5 +133,48 @@ export const ToolDefinitions = Object.freeze([
       },
       required: ['command']
     }
+  },
+  {
+    name: 'git_status',
+    description: 'Inspect Git status of the project workspace (current branch, modified, staged, and untracked files).',
+    parameters: {
+      type: 'OBJECT',
+      properties: {}
+    }
+  },
+  {
+    name: 'git_diff',
+    description: 'View working tree or staged differences in the project workspace.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        staged: {
+          type: 'BOOLEAN',
+          description: 'Whether to view staged changes. Defaults to false (unstaged changes).'
+        },
+        path: {
+          type: 'STRING',
+          description: 'Optional relative file path to scope the diff to a specific file.'
+        }
+      }
+    }
+  },
+  {
+    name: 'git_commit',
+    description: 'Stage modified files and create a Git commit with a descriptive conventional commit message.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        message: {
+          type: 'STRING',
+          description: 'Descriptive commit message (e.g. "feat(auth): add google sign-in").'
+        },
+        stageAll: {
+          type: 'BOOLEAN',
+          description: 'Whether to stage all changes before committing. Defaults to true.'
+        }
+      },
+      required: ['message']
+    }
   }
 ]);

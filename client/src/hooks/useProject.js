@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api.js';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 export function useProject() {
+  const { user, idToken } = useAuth();
   const [projects, setProjects] = useState([]);
   const [currentProject, setCurrentProject] = useState(null);
   const [fileTree, setFileTree] = useState(null);
@@ -57,25 +59,67 @@ export function useProject() {
     return newProj;
   };
 
+  // Rename / Update Project
+  const updateProject = async (projectId, { name, description }) => {
+    const updated = await api.updateProject(projectId, { name, description });
+    await refreshProjects();
+    if (currentProject?._id === projectId) {
+      setCurrentProject(updated);
+    }
+    return updated;
+  };
+
+  // Clone Project
+  const cloneProject = async (projectId, { name } = {}) => {
+    const cloned = await api.cloneProject(projectId, { name });
+    await refreshProjects();
+    return cloned;
+  };
+
+  // Delete Project
+  const deleteProject = async (projectId) => {
+    await api.deleteProject(projectId);
+    await refreshProjects();
+    if (currentProject?._id === projectId) {
+      setCurrentProject(null);
+      setFileTree(null);
+    }
+  };
+
+  // Download Project ZIP
+  const downloadProjectZip = async (projectId, projectName) => {
+    return await api.downloadProjectZip(projectId, projectName);
+  };
+
   // Switch Active Project
   const selectProject = (project) => {
     setCurrentProject(project);
     setFileTree(null);
   };
 
-  // Initial Boot: Check health, list projects, auto-select first project
+  // Initial Boot: Check health
   useEffect(() => {
     checkHealth();
     const interval = setInterval(checkHealth, 10000);
+    return () => clearInterval(interval);
+  }, [checkHealth]);
 
+  // When user or auth token changes, refresh projects
+  useEffect(() => {
     refreshProjects().then((projs) => {
       if (projs && projs.length > 0) {
-        setCurrentProject(projs[0]);
+        setCurrentProject((prev) => {
+          if (prev && projs.some((p) => p._id === prev._id)) {
+            return prev;
+          }
+          return projs[0];
+        });
+      } else {
+        setCurrentProject(null);
+        setFileTree(null);
       }
     });
-
-    return () => clearInterval(interval);
-  }, [checkHealth, refreshProjects]);
+  }, [user?.uid, idToken, refreshProjects]);
 
   // When currentProject changes, load its file tree
   useEffect(() => {
@@ -92,6 +136,10 @@ export function useProject() {
     backendConnected,
     error,
     createProject,
+    updateProject,
+    cloneProject,
+    deleteProject,
+    downloadProjectZip,
     selectProject,
     refreshProjects,
     refreshFileTree

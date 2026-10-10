@@ -6,7 +6,9 @@
 
 import { dockerManager } from '../infrastructure/docker/DockerManager.js';
 import { ProjectRepository } from '../repositories/ProjectRepository.js';
-import { NotFoundError } from '../utils/AppError.js';
+import { quotaService as defaultQuotaService } from './QuotaService.js';
+import { usageService as defaultUsageService } from './UsageService.js';
+import { NotFoundError, ForbiddenError } from '../utils/AppError.js';
 import { logger } from '../infrastructure/logger/logger.js';
 import { ProjectStatus } from '@kodra/shared';
 
@@ -14,10 +16,20 @@ export class SandboxService {
   /**
    * @param {ProjectRepository} [projectRepo]
    * @param {import('../infrastructure/docker/DockerManager.js').DockerManager} [dockerMgr]
+   * @param {import('./QuotaService.js').QuotaService} [quotaSvc]
+   * @param {import('./UsageService.js').UsageService} [usageSvc]
    */
-  constructor(projectRepo = new ProjectRepository(), dockerMgr = dockerManager) {
+  constructor(
+    projectRepo = new ProjectRepository(),
+    dockerMgr = dockerManager,
+    quotaSvc = defaultQuotaService,
+    usageSvc = defaultUsageService
+  ) {
     this.projectRepo = projectRepo;
     this.docker = dockerMgr;
+    this.quotaService = quotaSvc;
+    this.usageService = usageSvc;
+    this.activeSessions = new Map();
   }
 
   /**
@@ -30,13 +42,24 @@ export class SandboxService {
   /**
    * Start sandbox execution environment for a project
    * @param {string} projectId 
+   * @param {string} [ownerId]
    * @returns {Promise<{ mode: 'docker' | 'host_emulated', containerId: string | null, status: string }>}
    */
-  async startSandbox(projectId) {
+  async startSandbox(projectId, ownerId = null) {
     const project = await this.projectRepo.findById(projectId);
     if (!project) {
       throw new NotFoundError(`Project "${projectId}" not found.`);
     }
+
+    if (ownerId && project.ownerId !== 'anonymous' && project.ownerId !== ownerId) {
+      throw new ForbiddenError('You do not have permission to execute in this project sandbox.');
+    }
+
+    // Verify compute quota before starting sandbox
+    await this.quotaService.enforceComputeQuota(project.ownerId);
+
+    // Track active sandbox compute session start
+    this.activeSessions.set(projectId, { startTime: Date.now(), ownerId: project.ownerId });
 
     const dockerHealth = await this.docker.checkAvailability();
 
@@ -84,11 +107,17 @@ export class SandboxService {
 
   /**
    * Stop project sandbox environment
+   * @param {string} projectId
+   * @param {string} [ownerId]
    */
-  async stopSandbox(projectId) {
+  async stopSandbox(projectId, ownerId = null) {
     const project = await this.projectRepo.findById(projectId);
     if (!project) {
       throw new NotFoundError(`Project "${projectId}" not found.`);
+    }
+
+    if (ownerId && project.ownerId !== 'anonymous' && project.ownerId !== ownerId) {
+      throw new ForbiddenError('You do not have permission to stop this project sandbox.');
     }
 
     if (project.containerId) {
@@ -100,6 +129,16 @@ export class SandboxService {
       status: ProjectStatus.STOPPED
     });
 
+    // Record compute elapsed seconds into usage telemetry
+    const session = this.activeSessions.get(projectId);
+    if (session) {
+      const elapsedSeconds = Math.max(1, Math.round((Date.now() - session.startTime) / 1000));
+      this.usageService.recordComputeSeconds(session.ownerId, elapsedSeconds).catch((err) => {
+        logger.warn(`Failed to record compute seconds: ${err.message}`);
+      });
+      this.activeSessions.delete(projectId);
+    }
+
     logger.info(`Sandbox stopped for project "${project.name}".`);
 
     return {
@@ -110,11 +149,17 @@ export class SandboxService {
 
   /**
    * Get sandbox runtime diagnostics for a project
+   * @param {string} projectId
+   * @param {string} [ownerId]
    */
-  async getSandboxStatus(projectId) {
+  async getSandboxStatus(projectId, ownerId = null) {
     const project = await this.projectRepo.findById(projectId);
     if (!project) {
       throw new NotFoundError(`Project "${projectId}" not found.`);
+    }
+
+    if (ownerId && project.ownerId !== 'anonymous' && project.ownerId !== ownerId) {
+      throw new ForbiddenError('You do not have permission to access this project sandbox.');
     }
 
     const dockerHealth = await this.docker.checkAvailability();

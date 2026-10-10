@@ -6,7 +6,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { WebSocketEvents } from '@kodra/shared';
-import { api } from '../services/api.js';
+import { api, getApiAuthToken } from '../services/api.js';
 
 const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:5000';
 
@@ -74,7 +74,9 @@ export function useAgentChat(projectId, onFileChanged) {
     if (!projectId) return;
 
     setConnectionStatus('connecting');
-    const wsUrl = `${WS_BASE_URL}/ws/agent?projectId=${projectId}`;
+    const token = getApiAuthToken();
+    const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : '';
+    const wsUrl = `${WS_BASE_URL}/ws/agent?projectId=${projectId}${tokenQuery}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

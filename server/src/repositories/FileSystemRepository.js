@@ -92,6 +92,29 @@ export class FileSystemRepository {
   }
 
   /**
+   * Copy a directory recursively with exclusions
+   */
+  async copyDirectory(sourcePath, destPath, { exclude = ['node_modules', '.git', 'dist', '.DS_Store'] } = {}) {
+    const exists = await this.exists(sourcePath);
+    if (!exists) {
+      throw new NotFoundError(`Source directory "${path.basename(sourcePath)}" does not exist.`);
+    }
+
+    await this.createDirectory(destPath);
+    const ignoredSet = new Set(exclude);
+
+    await fs.cp(sourcePath, destPath, {
+      recursive: true,
+      filter: (src) => {
+        const base = path.basename(src);
+        return !ignoredSet.has(base);
+      }
+    });
+
+    return destPath;
+  }
+
+  /**
    * Get file stats (size, modified time)
    */
   async getStats(targetPath) {

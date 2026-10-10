@@ -10,6 +10,7 @@ import crypto from 'node:crypto';
 import { terminalService } from '../services/TerminalService.js';
 import { logger } from '../infrastructure/logger/logger.js';
 import { WebSocketEvents, ErrorCodes } from '@kodra/shared';
+import { verifySocketToken } from '../middleware/authMiddleware.js';
 
 export class TerminalGateway {
   /**
@@ -46,6 +47,22 @@ export class TerminalGateway {
       const sessionId = parsedUrl.searchParams.get('sessionId') || crypto.randomUUID();
       const initialCols = parseInt(parsedUrl.searchParams.get('cols') || '80', 10);
       const initialRows = parseInt(parsedUrl.searchParams.get('rows') || '24', 10);
+      const token = parsedUrl.searchParams.get('token') || (request.headers['authorization']?.startsWith('Bearer ') ? request.headers['authorization'].slice(7) : null);
+
+      // 1. Verify WebSocket Token
+      let user = null;
+      try {
+        user = await verifySocketToken(token);
+      } catch (authErr) {
+        logger.warn(`Terminal WS auth rejected: ${authErr.message}`);
+        this.sendFrame(ws, {
+          type: WebSocketEvents.ERROR,
+          code: ErrorCodes.UNAUTHORIZED,
+          message: authErr.message
+        });
+        ws.close(1008, 'Unauthorized');
+        return;
+      }
 
       if (!projectId) {
         logger.warn('Terminal WS connection rejected: Missing projectId query parameter');
@@ -58,7 +75,7 @@ export class TerminalGateway {
         return;
       }
 
-      logger.info(`Terminal WS connected: [${sessionId}] for project [${projectId}]`);
+      logger.info(`Terminal WS connected: [${sessionId}] for project [${projectId}] by user [${user.uid}]`);
 
       try {
         // Start PTY session and hook streaming

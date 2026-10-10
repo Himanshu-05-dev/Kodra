@@ -6,8 +6,11 @@
 
 import { WebSocketServer, WebSocket } from 'ws';
 import { agentService } from '../services/AgentService.js';
+import { quotaService } from '../services/QuotaService.js';
+import { usageService } from '../services/UsageService.js';
 import { logger } from '../infrastructure/logger/logger.js';
 import { WebSocketEvents, ErrorCodes } from '@kodra/shared';
+import { verifySocketToken } from '../middleware/authMiddleware.js';
 
 export class AgentGateway {
   /**
@@ -41,7 +44,24 @@ export class AgentGateway {
     this.wss.on('connection', async (ws, request) => {
       const parsedUrl = new URL(request.url || '', 'http://localhost');
       const projectId = parsedUrl.searchParams.get('projectId');
-      const userId = parsedUrl.searchParams.get('userId') || 'anonymous';
+      const token = parsedUrl.searchParams.get('token') || (request.headers['authorization']?.startsWith('Bearer ') ? request.headers['authorization'].slice(7) : null);
+
+      // 1. Verify WebSocket Token
+      let user = null;
+      try {
+        user = await verifySocketToken(token);
+      } catch (authErr) {
+        logger.warn(`Agent WS auth rejected: ${authErr.message}`);
+        this.sendFrame(ws, {
+          type: WebSocketEvents.ERROR,
+          code: ErrorCodes.UNAUTHORIZED,
+          message: authErr.message
+        });
+        ws.close(1008, 'Unauthorized');
+        return;
+      }
+
+      const userId = user.uid;
 
       if (!projectId) {
         logger.warn('Agent WS connection rejected: Missing projectId query parameter');
@@ -54,7 +74,7 @@ export class AgentGateway {
         return;
       }
 
-      logger.info(`Agent WS connected for project [${projectId}]`);
+      logger.info(`Agent WS connected for project [${projectId}] by user [${userId}]`);
 
       ws.on('message', async (rawMessage) => {
         try {
@@ -64,6 +84,19 @@ export class AgentGateway {
             case WebSocketEvents.AGENT_PROMPT: {
               const prompt = message.prompt;
               if (!prompt) return;
+
+              // Pre-check quota limits
+              try {
+                await quotaService.enforceTokenQuota(userId, Math.max(500, Math.round(prompt.length / 2)));
+              } catch (quotaErr) {
+                this.sendFrame(ws, {
+                  type: WebSocketEvents.ERROR,
+                  code: quotaErr.errorCode || ErrorCodes.QUOTA_EXCEEDED,
+                  message: quotaErr.message,
+                  details: quotaErr.details || []
+                });
+                return;
+              }
 
               // 1. Emit thinking state
               this.sendFrame(ws, { type: WebSocketEvents.AGENT_THINKING });
@@ -113,6 +146,12 @@ export class AgentGateway {
                     }
                   }
                 );
+
+                // Record token consumption in usage meter
+                const estimatedTokens = Math.max(100, Math.round((prompt.length + (result?.text?.length || 0)) / 2));
+                usageService.recordTokens(userId, estimatedTokens).catch((err) => {
+                  logger.warn(`Failed to record token usage: ${err.message}`);
+                });
 
                 // 3. Emit completion or cancellation frame
                 if (result.cancelled) {

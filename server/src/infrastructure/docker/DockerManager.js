@@ -14,6 +14,14 @@ export class DockerManager {
     this.docker = this._initDockerClient();
     this.isAvailable = false;
     this.activeContainers = new Map(); // projectId -> containerId
+    this.containerPorts = new Map(); // containerId -> { [containerPort]: hostPort }
+  }
+
+  /**
+   * Common web dev ports exposed in sandbox containers
+   */
+  static get COMMON_DEV_PORTS() {
+    return [5173, 3000, 8080, 4173, 8000, 5001];
   }
 
   /**
@@ -92,7 +100,16 @@ export class DockerManager {
       });
     }
 
-    // Configure container with security quotas
+    // Build ExposedPorts and PortBindings
+    const exposedPorts = {};
+    const portBindings = {};
+    for (const p of DockerManager.COMMON_DEV_PORTS) {
+      const key = `${p}/tcp`;
+      exposedPorts[key] = {};
+      portBindings[key] = [{ HostPort: '0' }]; // Dynamic ephemeral host port
+    }
+
+    // Configure container with security quotas and dynamic port mapping
     const container = await this.docker.createContainer({
       Image: config.docker.baseImage,
       name: containerName,
@@ -105,11 +122,13 @@ export class DockerManager {
         'kodra.project': projectId,
         'kodra.managed': 'true'
       },
+      ExposedPorts: exposedPorts,
       HostConfig: {
         Binds: [`${formattedBind}:${config.docker.workdir}:rw`],
         Memory: config.docker.memoryLimitBytes,
         NanoCpus: Math.floor(config.docker.cpuLimit * 1e9),
         PidsLimit: config.docker.pidsLimit,
+        PortBindings: portBindings,
         AutoRemove: true,
         NetworkMode: 'bridge'
       }
@@ -119,10 +138,59 @@ export class DockerManager {
     this.activeContainers.set(projectId, container.id);
     logger.info(`Sandbox container started [${container.id.slice(0, 12)}] for project ${projectId}`);
 
+    // Retrieve and cache dynamically assigned host ports
+    const portMappings = await this.getContainerPortMappings(container.id);
+
     return {
       containerId: container.id,
-      container
+      container,
+      portMappings
     };
+  }
+
+  /**
+   * Inspect container and extract dynamic host port mappings
+   * @param {string} containerId 
+   * @returns {Promise<Record<string, number>>} Map of containerPort -> hostPort
+   */
+  async getContainerPortMappings(containerId) {
+    if (!containerId) return {};
+
+    try {
+      const container = this.docker.getContainer(containerId);
+      const inspectData = await container.inspect();
+      const rawPorts = inspectData.NetworkSettings?.Ports || {};
+      const mappings = {};
+
+      for (const [key, bindings] of Object.entries(rawPorts)) {
+        const containerPort = parseInt(key.split('/')[0], 10);
+        if (bindings && bindings.length > 0 && bindings[0].HostPort) {
+          mappings[containerPort] = parseInt(bindings[0].HostPort, 10);
+        }
+      }
+
+      this.containerPorts.set(containerId, mappings);
+      return mappings;
+    } catch (err) {
+      logger.warn(`Failed to inspect port mappings for container [${containerId}]: ${err.message}`);
+      return this.containerPorts.get(containerId) || {};
+    }
+  }
+
+  /**
+   * Get mapped host port for a container's dev port
+   * @param {string} containerId 
+   * @param {number} containerPort 
+   * @returns {Promise<number | null>}
+   */
+  async getContainerHostPort(containerId, containerPort = 5173) {
+    const cached = this.containerPorts.get(containerId);
+    if (cached && cached[containerPort]) {
+      return cached[containerPort];
+    }
+
+    const mappings = await this.getContainerPortMappings(containerId);
+    return mappings[containerPort] || null;
   }
 
   /**
@@ -211,10 +279,12 @@ export class DockerManager {
       const container = this.docker.getContainer(containerId);
       await container.stop({ t: 2 });
       this.activeContainers.delete(projectId);
+      this.containerPorts.delete(containerId);
       logger.info(`Sandbox container stopped [${containerId.slice(0, 12)}] for project ${projectId}`);
     } catch (err) {
       logger.warn(`Error stopping container [${containerId}]: ${err.message}`);
       this.activeContainers.delete(projectId);
+      this.containerPorts.delete(containerId);
     }
   }
 

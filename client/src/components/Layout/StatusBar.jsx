@@ -1,20 +1,27 @@
 import React from 'react';
-import { GitBranch, Wifi, Check, Zap, Music2 } from 'lucide-react';
+import { GitBranch, Wifi, Check, Zap, Music2, Globe } from 'lucide-react';
 
 export function StatusBar({
   projectName,
   activeLanguage = 'JavaScript',
   isVibeModeActive,
-  backendConnected
+  backendConnected,
+  onTogglePreview,
+  gitBranch = 'main',
+  onToggleGit
 }) {
   return (
     <footer className="h-6 bg-[#07080c] border-t border-ide-border px-3 flex items-center justify-between text-[11px] text-ide-muted select-none font-mono shrink-0 z-30">
       {/* Left items */}
       <div className="flex items-center gap-3">
         {/* Git branch */}
-        <div className="flex items-center gap-1.5 text-ide-text hover:text-white cursor-pointer transition-colors">
+        <div
+          onClick={onToggleGit}
+          className="flex items-center gap-1.5 text-ide-text hover:text-white cursor-pointer transition-colors"
+          title="Toggle Git Source Control"
+        >
           <GitBranch size={12} className="text-purple-400" />
-          <span>main</span>
+          <span>{gitBranch}</span>
         </div>
 
         {/* Project indicator */}
@@ -23,6 +30,18 @@ export function StatusBar({
             <span>proj:</span>
             <span className="text-white font-medium">{projectName}</span>
           </div>
+        )}
+
+        {/* Live Preview Toggle Pill */}
+        {onTogglePreview && (
+          <button
+            onClick={onTogglePreview}
+            className="hidden md:flex items-center gap-1.5 text-emerald-400/90 hover:text-emerald-300 border-l border-ide-border/60 pl-3 cursor-pointer transition-colors"
+            title="Open Live Application Preview"
+          >
+            <Globe size={11} className="text-emerald-400" />
+            <span>Preview: Ready</span>
+          </button>
         )}
 
         {/* Vibe Mode Status Bar */}
